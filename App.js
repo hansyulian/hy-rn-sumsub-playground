@@ -5,108 +5,64 @@
  * @format
  * @flow strict-local
  */
-
+import SNSMobileSDK from '@sumsub/react-native-mobilesdk-module';
 import React from 'react';
-import type {Node} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+import {TouchableOpacity, Text} from 'react-native';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+const authToken =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxM2IyZDlkNy1hZmQyLTQ1NzAtODdmMC01N2Y2Y2E5ODY4ZjgiLCJpYXQiOjE2Mzk0NzI3MTgsImV4cCI6MTYzOTQ3MzYxOH0.V5OZTJu_a9-M8pSUFMPB1XgDpkK_YUGjXpuRoE9OYlc';
 
-const Section = ({children, title}): Node => {
-  const isDarkMode = useColorScheme() === 'dark';
+async function getNewAccessToken() {
+  const response = await fetch('http://192.168.0.2:4000/sumsub/access-token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${authToken}`,
+    },
+  });
+  const responseJson = await response.json();
+  return responseJson.token;
+}
+
+const App = () => {
+  async function launchSumsub() {
+    const accessToken = await getNewAccessToken();
+    let snsMobileSDK = SNSMobileSDK.init(accessToken, getNewAccessToken)
+      // .onTestEnv() // Remove this when you work with the production environment
+      .withHandlers({
+        // Optional callbacks you can use to get notified of the corresponding events
+        onStatusChanged: event => {
+          console.log(
+            'onStatusChanged: [' +
+              event.prevStatus +
+              '] => [' +
+              event.newStatus +
+              ']',
+          );
+        },
+        onLog: event => {
+          console.log('onLog: [Idensic] ' + event.message);
+        },
+      })
+      .withDebug(true)
+      .withLocale('en') // Optional, for cases when you need to override system locale
+      .build();
+
+    snsMobileSDK
+      .launch()
+      .then(result => {
+        console.log('SumSub SDK State: ' + JSON.stringify(result));
+      })
+      .catch(err => {
+        console.log('SumSub SDK Error: ' + JSON.stringify(err));
+      });
+  }
+
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
+    <TouchableOpacity onPress={launchSumsub}>
+      <Text>Click for sumsub</Text>
+    </TouchableOpacity>
   );
 };
-
-const App: () => Node = () => {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
-
-  return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.js</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-};
-
-const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-});
 
 export default App;
